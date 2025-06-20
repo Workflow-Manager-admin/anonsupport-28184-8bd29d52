@@ -2,6 +2,12 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, List
 from uuid import uuid4
+import os
+import json
+import threading
+
+TICKETS_FILE = os.path.join(os.path.dirname(__file__), '../../tickets.json')
+TICKETS_FILE = os.path.abspath(TICKETS_FILE)
 
 # Anonymous ticket status options
 class TicketStatus(str):
@@ -24,40 +30,99 @@ class TicketResponse(BaseModel):
     content: str
     status: str
 
-# Anonymous ticket repository (in-memory for demonstration; swap with persistent db as needed)
+class StatusUpdateRequest(BaseModel):
+    """Request model for updating a ticket's status."""
+    status: str = Field(..., description="New status (new, open, in_progress, closed)")
+
+def _thread_safe_file_lock():
+    """Simple single-process file lock using threading.RLock for critical file sections"""
+    return threading.RLock()
+
+# Anonymous ticket repository with JSON file persistence
 class TicketRepository:
-    def __init__(self):
+    def __init__(self, json_path=TICKETS_FILE):
+        self._json_path = json_path
+        # A re-entrant lock is used to ensure file consistency per process
+        self._lock = _thread_safe_file_lock()
         self._tickets: Dict[str, Dict] = {}
+        self._load()
+
+    def _load(self):
+        """Load tickets from the JSON file, or initialize empty if not present."""
+        with self._lock:
+            if not os.path.isfile(self._json_path):
+                self._tickets = {}
+                return
+            try:
+                with open(self._json_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                # Ensure structure is dict
+                if isinstance(data, dict):
+                    self._tickets = data
+                else:
+                    self._tickets = {}
+            except Exception:
+                self._tickets = {}
+
+    def _save(self):
+        """Persist the tickets dictionary to the file atomically (thread-safe for one process)."""
+        with self._lock:
+            tmp_path = self._json_path + ".tmp"
+            try:
+                with open(tmp_path, 'w', encoding='utf-8') as f:
+                    json.dump(self._tickets, f, ensure_ascii=False, indent=2)
+                os.replace(tmp_path, self._json_path)
+            except Exception:
+                pass  # In production, log/write error
 
     # PUBLIC_INTERFACE
     def create_ticket(self, subject: str, content: str) -> Dict:
-        ticket_id = str(uuid4())
-        ticket = {
-            "ticket_id": ticket_id,
-            "subject": subject,
-            "content": content,
-            "status": TicketStatus.NEW,
-        }
-        self._tickets[ticket_id] = ticket
-        return ticket
+        """Create a new ticket and persist to file."""
+        with self._lock:
+            ticket_id = str(uuid4())
+            ticket = {
+                "ticket_id": ticket_id,
+                "subject": subject,
+                "content": content,
+                "status": TicketStatus.NEW,
+            }
+            self._tickets[ticket_id] = ticket
+            self._save()
+            return ticket
 
     # PUBLIC_INTERFACE
     def get_ticket(self, ticket_id: str) -> Optional[Dict]:
-        return self._tickets.get(ticket_id)
+        """Get a ticket by its ID."""
+        with self._lock:
+            return self._tickets.get(ticket_id)
 
     # PUBLIC_INTERFACE
     def update_status(self, ticket_id: str, new_status: str) -> Optional[Dict]:
-        ticket = self._tickets.get(ticket_id)
-        if ticket and new_status in (TicketStatus.NEW, TicketStatus.OPEN, TicketStatus.IN_PROGRESS, TicketStatus.CLOSED):
-            ticket["status"] = new_status
-            return ticket
-        return None
+        """Update the status of a ticket and persist to file."""
+        with self._lock:
+            ticket = self._tickets.get(ticket_id)
+            if (
+                ticket
+                and new_status
+                in (TicketStatus.NEW, TicketStatus.OPEN, TicketStatus.IN_PROGRESS, TicketStatus.CLOSED)
+            ):
+                ticket["status"] = new_status
+                self._save()
+                return ticket
+            return None
 
     # PUBLIC_INTERFACE
     def list_tickets(self) -> List[Dict]:
-        return list(self._tickets.values())
+        """List all tickets."""
+        with self._lock:
+            return list(self._tickets.values())
 
-# Single shared repository instance (thread-unsafe; for demo/dev only)
+    # PUBLIC_INTERFACE
+    def reload_from_file(self):
+        """Reload tickets from the JSON file. Not typically needed outside app startup/test."""
+        self._load()
+
+# Single shared repository instance (thread/threadsafe across endpoints for demo/dev use)
 ticket_repo = TicketRepository()
 
 router = APIRouter()
@@ -95,10 +160,6 @@ async def get_ticket(ticket_id: str):
     return ticket
 
 # PUBLIC_INTERFACE
-class StatusUpdateRequest(BaseModel):
-    """Request model for updating a ticket's status."""
-    status: str = Field(..., description="New status (new, open, in_progress, closed)")
-
 @router.patch(
     "/tickets/{ticket_id}/status",
     response_model=TicketResponse,
