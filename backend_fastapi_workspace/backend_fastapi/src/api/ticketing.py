@@ -23,6 +23,14 @@ class TicketCreateRequest(BaseModel):
     content: str = Field(..., description="Details about the issue or request")
 
 # PUBLIC_INTERFACE
+class TicketEditRequest(BaseModel):
+    """Model for editing a support ticket."""
+    subject: Optional[str] = Field(None, description="Short title or subject of the ticket")
+    content: Optional[str] = Field(None, description="Details about the issue or request")
+    status: Optional[str] = Field(None, description="New status (new, open, in_progress, closed)")
+
+
+# PUBLIC_INTERFACE
 class TicketResponse(BaseModel):
     """Model for representing a ticket. No user info stored."""
     ticket_id: str
@@ -122,6 +130,34 @@ class TicketRepository:
         """Reload tickets from the JSON file. Not typically needed outside app startup/test."""
         self._load()
 
+    # PUBLIC_INTERFACE
+    def update_ticket(self, ticket_id: str, subject: Optional[str], content: Optional[str], status: Optional[str] = None) -> Optional[Dict]:
+        """Update a ticket's subject, content, and optionally status. Persists changes to file."""
+        with self._lock:
+            ticket = self._tickets.get(ticket_id)
+            if not ticket:
+                return None
+            if subject is not None:
+                ticket["subject"] = subject
+            if content is not None:
+                ticket["content"] = content
+            if status is not None:
+                if status not in (TicketStatus.NEW, TicketStatus.OPEN, TicketStatus.IN_PROGRESS, TicketStatus.CLOSED):
+                    return None
+                ticket["status"] = status
+            self._save()
+            return ticket
+
+    # PUBLIC_INTERFACE
+    def delete_ticket(self, ticket_id: str) -> bool:
+        """Delete a ticket by its ID and persist the change."""
+        with self._lock:
+            if ticket_id in self._tickets:
+                del self._tickets[ticket_id]
+                self._save()
+                return True
+            return False
+
 # Single shared repository instance (thread/threadsafe across endpoints for demo/dev use)
 ticket_repo = TicketRepository()
 
@@ -187,3 +223,58 @@ async def list_tickets():
     Retrieve all tickets in the system (anonymous—no user association).
     """
     return ticket_repo.list_tickets()
+
+
+# PUBLIC_INTERFACE
+@router.put(
+    "/tickets/{ticket_id}",
+    response_model=TicketResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Edit a ticket's details (subject, content, and optionally status)",
+    tags=["tickets"],
+    responses={
+        200: {"description": "Ticket successfully updated."},
+        404: {"description": "Ticket not found."},
+        400: {"description": "Invalid status."}
+    }
+)
+async def edit_ticket(ticket_id: str, req: TicketEditRequest):
+    """
+    Edit the subject, content, and optionally status of a support ticket by its ID.
+    """
+    updated_ticket = ticket_repo.update_ticket(
+        ticket_id,
+        subject=req.subject,
+        content=req.content,
+        status=req.status
+    )
+    if updated_ticket is None:
+        # If status invalid, treat as 400, if ticket not found, 404
+        if ticket_repo.get_ticket(ticket_id) is None:
+            raise HTTPException(status_code=404, detail="Ticket not found")
+        else:
+            raise HTTPException(status_code=400, detail="Invalid status")
+    return updated_ticket
+
+
+# PUBLIC_INTERFACE
+@router.delete(
+    "/tickets/{ticket_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a ticket by ID",
+    tags=["tickets"],
+    responses={
+        204: {"description": "Ticket deleted."},
+        404: {"description": "Ticket not found."}
+    }
+)
+async def delete_ticket(ticket_id: str):
+    """
+    Delete a support ticket by its ID.
+
+    Returns 204 No Content if deleted, 404 if not found.
+    """
+    deleted = ticket_repo.delete_ticket(ticket_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    return None
