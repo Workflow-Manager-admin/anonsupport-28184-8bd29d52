@@ -174,3 +174,44 @@ cached modules 1.27 MiB [cached] 44 modules
 runtime modules 27.5 KiB 14 modules
 ./src/api.js 1.32 KiB [built] [code generated]
 webpack 5.99.9 compiled successfully in 47 ms
+assets by status 1.98 KiB [cached] 1 asset
+assets by path *.js 1.42 MiB
+  asset bundle.js 1.41 MiB [emitted] (name: main)
+  asset main.ec3f143fc7066edf99d7.hot-update.js 9.26 KiB [emitted] [immutable] [hmr] (name: main)
+asset main.ec3f143fc7066edf99d7.hot-update.json 28 bytes [emitted] [immutable] [hmr]
+Entrypoint main 1.42 MiB = bundle.js 1.41 MiB main.ec3f143fc7066edf99d7.hot-update.js 9.26 KiB
+cached modules 1.27 MiB [cached] 44 modules
+runtime modules 27.5 KiB 14 modules
+./src/TicketList.jsx 6.08 KiB [built] [code generated]
+webpack 5.99.9 compiled successfully in 106 ms
+assets by status 1.98 KiB [cached] 1 asset
+assets by path *.js 1.42 MiB
+  asset bundle.js 1.41 MiB [emitted] (name: main)
+  asset main.5f3f03b33b8554670916.hot-update.js 7.71 KiB [emitted] [immutable] [hmr] (name: main)
+asset main.5f3f03b33b8554670916.hot-update.json 28 bytes [emitted] [immutable] [hmr]
+Entrypoint main 1.42 MiB = bundle.js 1.41 MiB main.5f3f03b33b8554670916.hot-update.js 7.71 KiB
+cached modules 1.27 MiB [cached] 44 modules
+runtime modules 27.5 KiB 14 modules
+./src/App.js 4.41 KiB [built] [code generated]
+
+WARNING in ./src/App.js 57:12-24
+export 'updateTicket' (imported as 'updateTicket') was not found in './api' (possible exports: createTicket, getTicket, listTickets)
+ @ ./src/index.js 5:0-24 11:32-35
+
+WARNING in ./src/App.js 75:12-24
+export 'deleteTicket' (imported as 'deleteTicket') was not found in './api' (possible exports: createTicket, getTicket, listTickets)
+ @ ./src/index.js 5:0-24 11:32-35
+
+webpack 5.99.9 compiled with 2 warnings in 102 ms
+assets by status 1.98 KiB [cached] 1 asset
+assets by path *.js 1.42 MiB
+  asset bundle.js 1.41 MiB [emitted] (name: main)
+  asset main.08e6ef18f71c8a1674aa.hot-update.js 3.88 KiB [emitted] [immutable] [hmr] (name: main)
+asset main.08e6ef18f71c8a1674aa.hot-update.json 28 bytes [emitted] [immutable] [hmr]
+Entrypoint main 1.42 MiB = bundle.js 1.41 MiB main.08e6ef18f71c8a1674aa.hot-update.js 3.88 KiB
+cached modules 1.27 MiB [cached] 43 modules
+runtime modules 27.5 KiB 14 modules
+javascript modules 6.65 KiB
+  ./src/App.js 4.41 KiB [code generated]
+  ./src/api.js 2.24 KiB [built] [code generated]
+webpack 5.99.9 compiled successfully in 48 ms

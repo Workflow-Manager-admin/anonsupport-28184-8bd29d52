@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './App.css';
 import TicketForm from './TicketForm';
 import TicketList from './TicketList';
-import { listTickets, createTicket } from './api';
+import { listTickets, createTicket, updateTicket, deleteTicket } from './api';
 
 // PUBLIC_INTERFACE
 function App() {
@@ -41,6 +41,29 @@ function App() {
     }
   };
 
+  // Handle ticket edit (PUT)
+  const handleEditTicket = async (ticket_id, fields) => {
+    try {
+      await updateTicket(ticket_id, fields);
+      setNotification({ message: 'Ticket updated!', type: 'success' });
+      fetchTickets();
+    } catch (err) {
+      setNotification({ message: err.message || 'Update failed', type: 'error' });
+    }
+  };
+
+  // Handle ticket deletion (DELETE)
+  const handleDeleteTicket = async (ticket_id) => {
+    if (!window.confirm("Delete this ticket? This cannot be undone.")) return;
+    try {
+      await deleteTicket(ticket_id);
+      setNotification({ message: 'Ticket deleted.', type: 'success' });
+      fetchTickets();
+    } catch (err) {
+      setNotification({ message: err.message || 'Delete failed', type: 'error' });
+    }
+  };
+
   // Hide notification after 3s
   useEffect(() => {
     if (notification) {
@@ -63,7 +86,12 @@ function App() {
       <main>
         <div className="container" style={{marginTop: "28px"}}>
           <TicketForm onSubmit={handleTicketSubmit} />
-          <TicketList tickets={tickets} loading={loading} />
+          <TicketList
+            tickets={tickets}
+            loading={loading}
+            onEdit={handleEditTicket}
+            onDelete={handleDeleteTicket}
+          />
         </div>
       </main>
 
