@@ -1,11 +1,9 @@
-/**
+ /**
  * API helper for anonymous ticketing system.
  * All routes and payloads follow the backend OpenAPI (FastAPI).
  */
 
-const BASE_URL =
-  (process.env.REACT_APP_API_BASE_URL ||
-    '/tickets/') // Assumes proxy or relative to site root.
+const BASE_URL = 'https://vscode-internal-90-qa.qa01.cloud.kavia.ai:3001/tickets/';
 
 /**
  * List all accessible tickets.
@@ -49,4 +47,36 @@ export async function getTicket(ticket_id) {
   });
   if (!res.ok) throw new Error('Ticket not found');
   return res.json();
+}
+
+/**
+ * Update an existing ticket (edit subject/content).
+ * fields = { subject, content }
+ * PUBLIC_INTERFACE
+ */
+export async function updateTicket(ticket_id, fields) {
+  // PUT request to `${BASE_URL}${ticket_id}`
+  const res = await fetch(`${BASE_URL}${encodeURIComponent(ticket_id)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify(fields),
+  });
+  if (res.status === 422) {
+    throw new Error("Missing or invalid info.");
+  }
+  if (!res.ok) throw new Error('Failed to update ticket');
+  return res.json();
+}
+
+/**
+ * Delete an existing ticket.
+ * PUBLIC_INTERFACE
+ */
+export async function deleteTicket(ticket_id) {
+  const res = await fetch(`${BASE_URL}${encodeURIComponent(ticket_id)}`, {
+    method: 'DELETE',
+    headers: { 'Accept': 'application/json' },
+  });
+  if (!res.ok) throw new Error('Failed to delete ticket');
+  return;
 }
