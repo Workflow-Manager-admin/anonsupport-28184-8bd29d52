@@ -3,10 +3,7 @@
  * All routes and payloads follow the backend OpenAPI (FastAPI).
  */
 
-const BASE_URL =
-  (typeof process !== "undefined" && process.env && process.env.REACT_APP_API_BASE_URL)
-    ? process.env.REACT_APP_API_BASE_URL
-    : (window.REACT_APP_API_BASE_URL || '/tickets/'); // Uses env, then checks window, else defaults
+const BASE_URL = 'https://vscode-internal-90-qa.qa01.cloud.kavia.ai:3001/tickets/';
 
 /**
  * List all accessible tickets.
