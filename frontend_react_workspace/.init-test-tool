@@ -1,0 +1,4 @@
+{
+    "command": "npm run test",
+    "working_directory": "/home/kavia/workspace/code-generation/anonsupport-28184-8bd29d52/frontend_react_workspace/frontend_react"
+}
