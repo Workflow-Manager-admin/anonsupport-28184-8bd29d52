@@ -4,8 +4,9 @@
  */
 
 const BASE_URL =
-  (process.env.REACT_APP_API_BASE_URL ||
-    '/tickets/') // Assumes proxy or relative to site root.
+  (typeof process !== "undefined" && process.env && process.env.REACT_APP_API_BASE_URL)
+    ? process.env.REACT_APP_API_BASE_URL
+    : (window.REACT_APP_API_BASE_URL || '/tickets/'); // Uses env, then checks window, else defaults
 
 /**
  * List all accessible tickets.
